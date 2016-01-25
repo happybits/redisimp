@@ -1,0 +1,10 @@
+-r requirements.txt
+
+coverage
+pytest
+testfixtures
+tox
+flake8
+line_profiler
+python-coveralls
+

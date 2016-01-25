@@ -1,0 +1,55 @@
+*.py[cod]
+.*
+# C extensions
+*.so
+*.c
+
+# Packages
+*.egg
+*.egg-info
+dist
+build
+eggs
+parts
+bin
+var
+sdist
+develop-eggs
+.installed.cfg
+lib
+lib64
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+nosetests.xml
+
+# Translations
+*.mo
+
+# Database stuff
+*.rdb
+*.settings
+
+# Mr Developer
+.mr.developer.cfg
+.project
+.pydevproject
+_build/doctrees/*
+
+*.pyc
+*.swp
+env27*
+.tox
+.coverage*
+dump.rdb
+redis-git
+htmlcov
+dist
+build
+*.egg-info
+
+/MANIFEST
