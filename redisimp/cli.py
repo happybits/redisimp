@@ -3,6 +3,7 @@ import argparse
 import sys
 import time
 import logging
+from signal import signal, SIGTERM
 
 # 3rd party
 import rediscluster
@@ -11,7 +12,7 @@ import redislite
 from redis.exceptions import BusyLoadingError
 
 # internal
-from .api import copy
+from .multi import multi_copy
 
 __all__ = ['main']
 
@@ -38,6 +39,10 @@ def parse_args():
         help='the destination in the form of hostname:port')
 
     parser.add_argument(
+        '-w', '--workers', type=int, default=1,
+        help='the number of workers to run in parallel')
+
+    parser.add_argument(
         '-v', '--verbose', type=bool, default=False,
         help='turn on verbose output')
 
@@ -46,7 +51,6 @@ def parse_args():
 
 def resolve_host(target):
     """
-
     :param target: str The host:port pair or path
     :return:
     """
@@ -77,12 +81,14 @@ def resolve_host(target):
                 if elapsed > REDISLITE_LOAD_WAIT_TIMEOUT:
                     raise BusyLoadingError('unable to load rdb %s' % target)
                 continue
-
             return conn
 
 
 def resolve_sources(srcstring):
     for hoststring in srcstring.split(','):
+        hoststring = hoststring.strip()
+        if len(hoststring) < 1:
+            continue
         for conn in extract_nodes_from_conn(resolve_host(hoststring)):
             yield conn
 
@@ -116,20 +122,31 @@ def resolve_destination(dststring):
         startup_nodes=[{'host': host, 'port': port} for host, port in nodes])
 
 
-def main():
-    args = parse_args()
-    dst = resolve_destination(args.dst)
-    verbose = args.verbose
-    processed = 0
-    for src in resolve_sources(args.src):
-        for key in copy(src, dst):
-            processed += 1
-            if verbose:
-                print key
+def sigterm_handler(signum, frame):
+    # pylint: disable=unused-argument
+    raise SystemExit('--- Caught SIGTERM; Attempting to quit gracefully ---')
 
-            if not verbose and processed % 1000 == 0:
-                sys.stdout.write('\r%d' % processed)
-                sys.stdout.flush()
+
+def process(src, dst, verbose=False, workers=None):
+    dst = resolve_destination(dst)
+    processed = 0
+    src_list = [s for s in resolve_sources(src)]
+
+    for key in multi_copy(src_list, dst, worker_count=workers):
+        processed += 1
+        if verbose:
+            print key
+
+        if not verbose and processed % 1000 == 0:
+            sys.stdout.write('\r%d' % processed)
+            sys.stdout.flush()
 
     print ""
     print "processed %s keys" % processed
+
+
+def main():
+    signal(SIGTERM, sigterm_handler)
+    args = parse_args()
+    process(src=args.src, dst=args.dst,
+            verbose=args.verbose, workers=args.workers)
