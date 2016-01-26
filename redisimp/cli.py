@@ -39,8 +39,8 @@ def parse_args():
         help='the destination in the form of hostname:port')
 
     parser.add_argument(
-        '-w', '--workers', type=int, default=1,
-        help='the number of workers to run in parallel')
+        '-w', '--workers', type=int, default=None,
+        help='the number of workers to run in parallel.')
 
     parser.add_argument(
         '-v', '--verbose', type=bool, default=False,
@@ -89,8 +89,7 @@ def resolve_sources(srcstring):
         hoststring = hoststring.strip()
         if len(hoststring) < 1:
             continue
-        for conn in extract_nodes_from_conn(resolve_host(hoststring)):
-            yield conn
+        yield resolve_host(hoststring)
 
 
 def extract_nodes_from_conn(conn):
@@ -127,12 +126,12 @@ def sigterm_handler(signum, frame):
     raise SystemExit('--- Caught SIGTERM; Attempting to quit gracefully ---')
 
 
-def process(src, dst, verbose=False, workers=None):
+def process(src, dst, verbose=False, worker_count=None):
     dst = resolve_destination(dst)
     processed = 0
     src_list = [s for s in resolve_sources(src)]
 
-    for key in multi_copy(src_list, dst, worker_count=workers):
+    for key in multi_copy(src_list, dst, worker_count=worker_count):
         processed += 1
         if verbose:
             print key
@@ -149,4 +148,4 @@ def main():
     signal(SIGTERM, sigterm_handler)
     args = parse_args()
     process(src=args.src, dst=args.dst,
-            verbose=args.verbose, workers=args.workers)
+            verbose=args.verbose, worker_count=args.workers)

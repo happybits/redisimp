@@ -26,12 +26,10 @@ def run(src_queue, channel, shutdown, dst):
             src = src_queue.get(block=False)
         except Empty:
             return
-
         for key in copy(src, dst):
             channel.put(key)
             if shutdown.is_set():
-                return None
-        return None
+                return
 
 
 def _calc_worker_count(src_ct, worker_count):
@@ -75,7 +73,6 @@ def multi_copy(srclist, dst, worker_count=None):
     """
 
     src_ct = len(srclist)
-
     worker_count = _calc_worker_count(src_ct, worker_count)
 
     if worker_count < 2:
@@ -89,7 +86,6 @@ def multi_copy(srclist, dst, worker_count=None):
     shutdown = Event()
 
     threads = _create_workers(src_queue, channel, shutdown, dst, worker_count)
-
     try:
 
         for t in threads:
