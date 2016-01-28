@@ -24,6 +24,11 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 2.7',
     ],
+    install_requires=[
+        'redis>=2.10.2',
+        'redis-py-cluster>=1.0.0',
+        'redislite>=3.0.0',
+    ],
     entry_points={
         'console_scripts': [
             'redisimp = redisimp.cli:main',
