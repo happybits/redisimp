@@ -117,7 +117,7 @@ def resolve_destination(dststring):
         h, p = slotinfo[2]
         nodes.add((h, p))
 
-    return rediscluster.RedisCluster(
+    return rediscluster.StrictRedisCluster(
         startup_nodes=[{'host': host, 'port': port} for host, port in nodes])
 
 
