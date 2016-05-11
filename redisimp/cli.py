@@ -92,31 +92,13 @@ def resolve_sources(srcstring):
         yield resolve_host(hoststring)
 
 
-def extract_nodes_from_conn(conn):
-    if not conn.info('cluster').get('cluster_enabled', None):
-        yield conn
-        return
-
-    # de-dupe cluster node host-port pairs
-    nodes = set()
-    for slotinfo in conn.execute_command('cluster', 'slots'):
-        nodes.add(slotinfo[2][0:2])
-
-    for host, port in nodes:
-        yield redis.StrictRedis(host=host, port=port)
-
-
 def resolve_destination(dststring):
     conn = resolve_host(dststring)
     if not conn.info('cluster').get('cluster_enabled', None):
         return conn
 
-    nodes = set()
-    for slotinfo in conn.execute_command('cluster', 'slots'):
-        nodes.add(slotinfo[2][0:2])
-
-    return rediscluster.StrictRedisCluster(
-        startup_nodes=[{'host': host, 'port': port} for host, port in nodes])
+    host, port = dststring.split(':')
+    return rediscluster.StrictRedisCluster(startup_nodes=[{'host': host, 'port': port}])
 
 
 def sigterm_handler(signum, frame):
