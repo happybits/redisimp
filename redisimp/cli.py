@@ -100,8 +100,7 @@ def extract_nodes_from_conn(conn):
     # de-dupe cluster node host-port pairs
     nodes = set()
     for slotinfo in conn.execute_command('cluster', 'slots'):
-        h, p = slotinfo[2]
-        nodes.add((h, p))
+        nodes.add(slotinfo[2][0:2])
 
     for host, port in nodes:
         yield redis.StrictRedis(host=host, port=port)
@@ -114,8 +113,7 @@ def resolve_destination(dststring):
 
     nodes = set()
     for slotinfo in conn.execute_command('cluster', 'slots'):
-        h, p = slotinfo[2]
-        nodes.add((h, p))
+        nodes.add(slotinfo[2][0:2])
 
     return rediscluster.StrictRedisCluster(
         startup_nodes=[{'host': host, 'port': port} for host, port in nodes])
