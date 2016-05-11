@@ -65,7 +65,7 @@ def resolve_host(target):
         start = time.time()
         while True:
             try:
-                conn = redislite.StrictRedis(target)
+                conn = redislite.StrictRedis(target, start_timeout=REDISLITE_LOAD_WAIT_TIMEOUT)
             except BusyLoadingError:
                 logging.info('%s loading', target)
                 elapsed = time.time() - start
