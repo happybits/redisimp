@@ -1,9 +1,7 @@
 __all__ = ['copy']
 
-BATCH_SIZE = 500
 
-
-def read_keys(src):
+def read_keys(src, batch_size=500, match=None):
     """
 
     :param src: redis.StrictRedis
@@ -12,7 +10,7 @@ def read_keys(src):
 
     cursor = 0
     while True:
-        cursor, keys = src.scan(cursor=cursor, count=BATCH_SIZE)
+        cursor, keys = src.scan(cursor=cursor, count=batch_size, match=match)
         if keys:
             yield keys
 
@@ -38,7 +36,7 @@ def read_data_and_pttl(src, keys):
         yield key, data, pttl
 
 
-def copy(src, dst):
+def copy(src, dst, match=None):
     """
     yeilds either the count or the keys it processes as it goes.
     :param src: redis.StrictRedis
@@ -47,7 +45,7 @@ def copy(src, dst):
     :return: None
     """
     read = read_data_and_pttl
-    for keys in read_keys(src):
+    for keys in read_keys(src, match=match):
         pipe = dst.pipeline(transaction=False)
         for key, data, pttl in read(src, keys):
             pipe.delete(key)

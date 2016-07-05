@@ -43,6 +43,10 @@ def parse_args():
         help='the number of workers to run in parallel.')
 
     parser.add_argument(
+        '-f', '--filter', type=str, default=None,
+        help='a glob-style matching filter to select the keys to copy')
+
+    parser.add_argument(
         '-v', '--verbose', type=bool, default=False,
         help='turn on verbose output')
 
@@ -107,12 +111,12 @@ def sigterm_handler(signum, frame):
     raise SystemExit('--- Caught SIGTERM; Attempting to quit gracefully ---')
 
 
-def process(src, dst, verbose=False, worker_count=None):
+def process(src, dst, verbose=False, worker_count=None, match=None):
     dst = resolve_destination(dst)
     processed = 0
     src_list = [s for s in resolve_sources(src)]
 
-    for key in multi_copy(src_list, dst, worker_count=worker_count):
+    for key in multi_copy(src_list, dst, worker_count=worker_count, match=match):
         processed += 1
         if verbose:
             print key
@@ -129,4 +133,4 @@ def main():
     signal(SIGTERM, sigterm_handler)
     args = parse_args()
     process(src=args.src, dst=args.dst,
-            verbose=args.verbose, worker_count=args.workers)
+            verbose=args.verbose, worker_count=args.workers, match=args.match)

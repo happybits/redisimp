@@ -123,5 +123,63 @@ class MultiCopySortedSets(MultiCopyTestCase):
         self.assertEqual(DST.zrange('bar', 0, -1, withscores=True),
                          [(u'one', 1), (u'two', 2), (u'three', 3)])
 
+
+class CopyWithFilter(unittest.TestCase):
+
+    def setUp(self):
+        clean()
+        self.populate()
+        self.keys = set()
+        for key in redisimp.multi_copy([SRC], DST, match='f*'):
+            self.keys.add(key)
+
+    def tearDown(self):
+        clean()
+
+    def populate(self):
+        SRC.zadd('foo', 1, 'one')
+        SRC.zadd('foo', 2, 'two')
+        SRC.zadd('foo', 3, 'three')
+
+        SRC.zadd('bar', 1, 'one')
+        SRC.zadd('bar', 2, 'two')
+        SRC.zadd('bar', 3, 'three')
+
+    def test(self):
+        self.assertEqual(self.keys, {'foo'})
+        self.assertEqual(DST.zrange('foo', 0, -1, withscores=True),
+                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+
+        self.assertEqual(DST.zrange('bar', 0, -1), [])
+
+
+class MultiCopyWithFilter(unittest.TestCase):
+
+    def setUp(self):
+        clean()
+        self.populate()
+        self.keys = set()
+        for key in redisimp.multi_copy([SRC, SRC], DST, match='f*'):
+            self.keys.add(key)
+
+    def tearDown(self):
+        clean()
+
+    def populate(self):
+        SRC.zadd('foo', 1, 'one')
+        SRC.zadd('foo', 2, 'two')
+        SRC.zadd('foo', 3, 'three')
+
+        SRC.zadd('bar', 1, 'one')
+        SRC.zadd('bar', 2, 'two')
+        SRC.zadd('bar', 3, 'three')
+
+    def test(self):
+        self.assertEqual(self.keys, {'foo'})
+        self.assertEqual(DST.zrange('foo', 0, -1, withscores=True),
+                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+
+        self.assertEqual(DST.zrange('bar', 0, -1), [])
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
