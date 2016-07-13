@@ -1,3 +1,5 @@
+import re
+
 __all__ = ['copy']
 
 
@@ -9,9 +11,17 @@ def read_keys(src, batch_size=500, filter=None):
     """
 
     cursor = 0
+    if filter is not None and filter.startswith('/') and filter.endswith('/'):
+        pattern = re.compile(filter[1:-1])
+        filter = None
+    else:
+        pattern = None
+
     while True:
         cursor, keys = src.scan(cursor=cursor, count=batch_size, match=filter)
         if keys:
+            if pattern is not None:
+                keys = [key for key in keys if pattern.match(key)]
             yield keys
 
         if cursor == 0:

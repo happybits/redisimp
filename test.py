@@ -157,6 +157,28 @@ class CopyWithFilter(unittest.TestCase):
         self.assertEqual(DST.zrange('bar', 0, -1), [])
 
 
+class CopyWithRegexFilter(unittest.TestCase):
+
+    def setUp(self):
+        clean()
+        self.populate()
+        self.keys = set()
+        for key in redisimp.multi_copy([SRC], DST, filter='/^(foo|bar)\{[a-z]+\}$/'):
+            self.keys.add(key)
+
+    def tearDown(self):
+        clean()
+
+    def populate(self):
+        SRC.set('foo{a}', 1)
+        SRC.set('foo{b}', 1)
+        SRC.set('bar{a}', 1)
+        SRC.set('bazz{a}', 1)
+
+    def test(self):
+        self.assertEqual(self.keys, {'foo{a}', 'foo{b}', 'bar{a}'})
+
+
 class MultiCopyWithFilter(unittest.TestCase):
 
     def setUp(self):
