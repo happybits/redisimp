@@ -43,23 +43,27 @@ def clean():
 
 
 class CopyTestCase(unittest.TestCase):
-
     def populate(self):
         pass
+
+    def backfill(self):
+        return False
 
     def setUp(self):
         clean()
         self.populate()
+        self.keys = set([key for key in self.copy()])
+
+    def copy(self):
         self.keys = set()
-        for key in redisimp.copy(SRC, DST):
-            self.keys.add(key)
+        for key in redisimp.copy(SRC, DST, backfill=self.backfill()):
+            yield key
 
     def tearDown(self):
         clean()
 
 
 class MultiCopyTestCase(unittest.TestCase):
-
     def populate(self):
         pass
 
@@ -75,7 +79,6 @@ class MultiCopyTestCase(unittest.TestCase):
 
 
 class CopyStrings(CopyTestCase):
-
     def populate(self):
         SRC.set('foo', 'a')
         SRC.set('bar', 'b')
@@ -88,8 +91,26 @@ class CopyStrings(CopyTestCase):
         self.assertEqual(DST.get('bazz'), u'c')
 
 
-class CopySortedSets(CopyTestCase):
+class CopyStringsBackfill(CopyTestCase):
+    def backfill(self):
+        return True
 
+    def populate(self):
+        SRC.set('foo', 'a')
+        SRC.set('bar', 'b')
+        SRC.set('bazz', 'c')
+
+    def test(self):
+        self.assertEqual(self.keys, {'foo', 'bar', 'bazz'})
+        self.assertEqual(DST.get('foo'), u'a')
+        self.assertEqual(DST.get('bar'), u'b')
+        self.assertEqual(DST.get('bazz'), u'c')
+        SRC.set('quux', 'd')
+        keys = set([key for key in self.copy()])
+        self.assertEqual(keys, {'quux'})
+
+
+class CopySortedSets(CopyTestCase):
     def populate(self):
         SRC.zadd('foo', 1, 'one')
         SRC.zadd('foo', 2, 'two')
@@ -109,7 +130,6 @@ class CopySortedSets(CopyTestCase):
 
 
 class MultiCopySortedSets(MultiCopyTestCase):
-
     def populate(self):
         SRC.zadd('foo', 1, 'one')
         SRC.zadd('foo', 2, 'two')
@@ -129,12 +149,11 @@ class MultiCopySortedSets(MultiCopyTestCase):
 
 
 class CopyWithFilter(unittest.TestCase):
-
     def setUp(self):
         clean()
         self.populate()
         self.keys = set()
-        for key in redisimp.multi_copy([SRC], DST, filter='f*'):
+        for key in redisimp.multi_copy([SRC], DST, pattern='f*'):
             self.keys.add(key)
 
     def tearDown(self):
@@ -158,12 +177,12 @@ class CopyWithFilter(unittest.TestCase):
 
 
 class CopyWithRegexFilter(unittest.TestCase):
-
     def setUp(self):
         clean()
         self.populate()
         self.keys = set()
-        for key in redisimp.multi_copy([SRC], DST, filter='/^(foo|bar)\{[a-z]+\}$/'):
+        for key in redisimp.multi_copy([SRC], DST,
+                                       pattern='/^(foo|bar)\{[a-z]+\}$/'):
             self.keys.add(key)
 
     def tearDown(self):
@@ -180,12 +199,11 @@ class CopyWithRegexFilter(unittest.TestCase):
 
 
 class MultiCopyWithFilter(unittest.TestCase):
-
     def setUp(self):
         clean()
         self.populate()
         self.keys = set()
-        for key in redisimp.multi_copy([SRC, SRC], DST, filter='f*'):
+        for key in redisimp.multi_copy([SRC, SRC], DST, pattern='f*'):
             self.keys.add(key)
 
     def tearDown(self):
@@ -216,10 +234,10 @@ class TestParseArgs(unittest.TestCase):
         self.assertEqual(args.src, '0:6379')
         self.assertEqual(args.dst, '0:6380')
 
-    def test_filter(self):
+    def test_pattern(self):
         args = redisimp.cli.parse_args(
-            ['--filter', 'V{*}', '-s', '0:6379', '-d', '0:6380'])
-        self.assertEqual(args.filter, 'V{*}')
+            ['--pattern', 'V{*}', '-s', '0:6379', '-d', '0:6380'])
+        self.assertEqual(args.pattern, 'V{*}')
 
     def test_workers(self):
         args = redisimp.cli.parse_args(
@@ -233,7 +251,6 @@ class TestParseArgs(unittest.TestCase):
 
 
 class TestMain(unittest.TestCase):
-
     def setUp(self):
         clean()
         self.populate()
@@ -259,7 +276,8 @@ class TestMain(unittest.TestCase):
         self.assertEqual(DST.zrange('foo{b}', 0, -1, withscores=True), [])
         self.assertEqual(DST.zrange('bar', 0, -1, withscores=True), [])
         out = StringIO()
-        redisimp.main(['-s', SRC_RDB, '-d', DST_RDB, '--filter', 'foo{*}'], out=out)
+        redisimp.main(['-s', SRC_RDB, '-d', DST_RDB, '--pattern', 'foo{*}'],
+                      out=out)
         res = DST.zrange('foo{a}', 0, -1, withscores=True)
         self.assertEqual(res, [('one', 1), ('two', 2), ('three', 3)])
         res = DST.zrange('foo{b}', 0, -1, withscores=True)
@@ -269,6 +287,14 @@ class TestMain(unittest.TestCase):
 
         output = out.getvalue().strip()
         self.assertEqual(output, "processed 2 keys")
+
+        out = StringIO()
+        redisimp.main(['-s', SRC_RDB, '-d', DST_RDB, '--backfill'], out=out)
+        res = DST.zrange('bar', 0, -1, withscores=True)
+        self.assertEqual(res, [('one', 1), ('two', 2), ('three', 3)])
+
+        output = out.getvalue().strip()
+        self.assertEqual(output, "processed 1 keys")
 
 
 if __name__ == '__main__':

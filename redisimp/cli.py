@@ -43,12 +43,21 @@ def parse_args(args=None):
         help='the number of workers to run in parallel.')
 
     parser.add_argument(
-        '-f', '--filter', type=str, default=None,
-        help='a glob-style filter to select the keys to copy')
+        '-p', '--pattern', type=str, default=None,
+        help='a glob-style pattern to select the keys to copy')
+
+    parser.add_argument(
+        '-f', '--filter', type=str, dest='pattern',
+        help='a glob-style pattern to select the keys to copy')
 
     parser.add_argument(
         '-v', '--verbose', action='store_true', default=False,
         help='turn on verbose output')
+
+    parser.add_argument(
+        '-b', '--backfill', action='store_true', default=False,
+        help="backfill data, don't overwrite keys in "
+             "destination that exist already")
 
     return parser.parse_args(args=args)
 
@@ -103,22 +112,25 @@ def resolve_destination(dststring):
         return conn
 
     host, port = dststring.split(':')
-    return rediscluster.StrictRedisCluster(startup_nodes=[{'host': host, 'port': port}])
+    return rediscluster.StrictRedisCluster(
+        startup_nodes=[{'host': host, 'port': port}])
 
 
+# pylint: disable=unused-argument
 def sigterm_handler(signum, frame):
-    # pylint: disable=unused-argument
     raise SystemExit('--- Caught SIGTERM; Attempting to quit gracefully ---')
 
 
-def process(src, dst, verbose=False, worker_count=None, filter=None, out=None):
+def process(src, dst, verbose=False, worker_count=None, pattern=None,
+            backfill=False, out=None):
     if out is None:
         out = sys.stdout
     dst = resolve_destination(dst)
     processed = 0
     src_list = [s for s in resolve_sources(src)]
 
-    for key in multi_copy(src_list, dst, worker_count=worker_count, filter=filter):
+    for key in multi_copy(src_list, dst, worker_count=worker_count,
+                          pattern=pattern, backfill=backfill):
         processed += 1
         if verbose:
             print key
@@ -136,4 +148,4 @@ def main(args=None, out=None):
     args = parse_args(args=args)
     process(src=args.src, dst=args.dst,
             verbose=args.verbose, worker_count=args.workers,
-            filter=args.filter, out=out)
+            pattern=args.pattern, backfill=args.backfill, out=out)
