@@ -141,6 +141,10 @@ def process(src, dst, verbose=False, worker_count=None, pattern=None,
 
     out.write('\n\nprocessed %s keys\n' % processed)
     out.flush()
+    for src in src_list:
+        del src
+
+    del dst
 
 
 def main(args=None, out=None):
