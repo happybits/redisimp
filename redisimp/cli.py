@@ -150,6 +150,13 @@ def process(src, dst, verbose=False, worker_count=None, pattern=None,
     for src in src_list:
         del src
 
+    # make sure to save data if it is redislite destnation
+    if isinstance(dst, redislite.StrictRedis):
+        try:
+            dst.bgsave()
+        except redis.ResponseError:
+            pass
+
     del dst
 
 
