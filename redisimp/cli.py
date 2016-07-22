@@ -13,6 +13,7 @@ from redis.exceptions import BusyLoadingError
 
 # internal
 from .multi import multi_copy
+from .version import __version__
 
 __all__ = ['main']
 
@@ -29,7 +30,12 @@ def parse_args(args=None):
     :return: argparse.Namespace
     """
     parser = argparse.ArgumentParser(
-        description='import data from redis shards into current redis server')
+        description='redisimp v%s - import keys from one or more'
+                    ' redis instances to another' % __version__)
+
+    parser.add_argument('--version', action='version',
+                        version='redisimp %s' % __version__)
+
     parser.add_argument(
         '-s', '--src', type=str, required=True,
         help='comma separated list of hosts in the form of hostname:port')
@@ -150,6 +156,7 @@ def process(src, dst, verbose=False, worker_count=None, pattern=None,
 def main(args=None, out=None):
     signal(SIGTERM, sigterm_handler)
     args = parse_args(args=args)
+
     process(src=args.src, dst=args.dst,
             verbose=args.verbose, worker_count=args.workers,
             pattern=args.pattern, backfill=args.backfill, out=out)
