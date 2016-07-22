@@ -3,14 +3,14 @@ import re
 __all__ = ['copy']
 
 
-def read_keys(src, batch_size=500, pattern=None):
+def _read_keys(src, batch_size=500, pattern=None):
     """
     iterate through batches of keys from source
     :param src: redis.StrictRedis
     :param batch_size: int
     :param pattern: str
     :yeild: array of keys
-    :return:
+    :return: generator
     """
     if pattern is not None and pattern.startswith('/') and pattern.endswith('/'):
         regex_pattern = re.compile(pattern[1:-1])
@@ -30,7 +30,7 @@ def read_keys(src, batch_size=500, pattern=None):
             break
 
 
-def read_data_and_pttl(src, keys):
+def _read_data_and_pttl(src, keys):
     pipe = src.pipeline(transaction=False)
     for key in keys:
         pipe.dump(key)
@@ -48,7 +48,7 @@ def read_data_and_pttl(src, keys):
         yield key, data, pttl
 
 
-def compare_version(version1, version2):
+def _compare_version(version1, version2):
     def normalize(v):
         return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
 
@@ -60,7 +60,7 @@ def _supports_replace(conn):
     if not version:
         return False
 
-    if compare_version(version, '3.0.0') >= 0:
+    if _compare_version(version, '3.0.0') >= 0:
         return True
     else:
         return False
@@ -82,14 +82,7 @@ def _get_restore_handler(conn):
         return _delete_restore
 
 
-def copy(src, dst, pattern=None, backfill=False):
-    if backfill:
-        return backfill_copy(src=src, dst=dst, pattern=pattern)
-    else:
-        return clobber_copy(src=src, dst=dst, pattern=pattern)
-
-
-def clobber_copy(src, dst, pattern=None):
+def _clobber_copy(src, dst, pattern=None):
     """
     yields the keys it processes as it goes.
     :param pattern:
@@ -97,10 +90,10 @@ def clobber_copy(src, dst, pattern=None):
     :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
     :return: None
     """
-    read = read_data_and_pttl
+    read = _read_data_and_pttl
     _restore = _get_restore_handler(dst)
 
-    for keys in read_keys(src, pattern=pattern):
+    for keys in _read_keys(src, pattern=pattern):
         pipe = dst.pipeline(transaction=False)
         for key, data, pttl in read(src, keys):
             _restore(pipe, key, pttl, data)
@@ -108,7 +101,7 @@ def clobber_copy(src, dst, pattern=None):
         pipe.execute()
 
 
-def backfill_copy(src, dst, pattern=None):
+def _backfill_copy(src, dst, pattern=None):
     """
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
@@ -117,8 +110,8 @@ def backfill_copy(src, dst, pattern=None):
     :param pattern: str
     :return: None
     """
-    read = read_data_and_pttl
-    for keys in read_keys(src, pattern=pattern):
+    read = _read_data_and_pttl
+    for keys in _read_keys(src, pattern=pattern):
         # don't even bother reading the data if the key already exists in the src.
         pipe = dst.pipeline(transaction=False)
         for key in keys:
@@ -142,3 +135,20 @@ def backfill_copy(src, dst, pattern=None):
                 continue
 
             raise result
+
+
+def copy(src, dst, pattern=None, backfill=False):
+    """
+    Copy data from source to destination.
+    Optionally filter the source keys by a given glob-style or regex pattern.
+    Optionally only backfill keys, avoiding overwriting any pre-existing keys.
+    :param src: redis.StrictRedis
+    :param dst: redis.StrictRedis
+    :param pattern: string
+    :param backfill: bool
+    :return: generator
+    """
+    if backfill:
+        return _backfill_copy(src=src, dst=dst, pattern=pattern)
+    else:
+        return _clobber_copy(src=src, dst=dst, pattern=pattern)
