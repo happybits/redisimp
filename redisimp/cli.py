@@ -119,7 +119,7 @@ def resolve_destination(dststring):
 
     host, port = dststring.split(':')
     return rediscluster.StrictRedisCluster(
-        startup_nodes=[{'host': host, 'port': port}])
+        startup_nodes=[{'host': host, 'port': port}], max_connections=1000)
 
 
 # pylint: disable=unused-argument
