@@ -1,4 +1,5 @@
 import re
+import rediscluster
 
 __all__ = ['copy']
 
@@ -56,6 +57,8 @@ def _compare_version(version1, version2):
 
 
 def _supports_replace(conn):
+    if isinstance(conn, rediscluster.StrictRedisCluster):
+        return True
     version = conn.info().get('redis_version')
     if not version:
         return False
