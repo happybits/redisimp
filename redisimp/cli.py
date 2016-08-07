@@ -109,7 +109,12 @@ def resolve_sources(srcstring):
         hoststring = hoststring.strip()
         if len(hoststring) < 1:
             continue
-        yield resolve_host(hoststring)
+        if hoststring.startswith('rdb://'):
+            yield hoststring[6:]
+        elif ':' not in hoststring:
+            yield hoststring
+        else:
+            yield resolve_host(hoststring)
 
 
 def resolve_destination(dststring):

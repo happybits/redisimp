@@ -1,4 +1,3 @@
-#-e git://github.com/72squared/redislite.git@3ea7b1af54adb47373ab90f203065961341c3257#egg=redislite
 redislite==3.0.287
 redis>=2.10.5
 redis-py-cluster>=1.2.0

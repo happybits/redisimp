@@ -270,6 +270,7 @@ class TestMain(unittest.TestCase):
         SRC.zadd('bar', 1, 'one')
         SRC.zadd('bar', 2, 'two')
         SRC.zadd('bar', 3, 'three')
+        SRC.save()
 
     def test(self):
         self.assertEqual(DST.zrange('foo{a}', 0, -1, withscores=True), [])
@@ -295,6 +296,38 @@ class TestMain(unittest.TestCase):
 
         output = out.getvalue().strip()
         self.assertEqual(output, "processed 1 keys")
+
+
+class TestRDBParser(unittest.TestCase):
+
+    def setUp(self):
+        clean()
+        self.populate()
+
+    def tearDown(self):
+        clean()
+
+    def populate(self):
+        SRC.set('strfoo', 'foo')
+        SRC.set('strone', '1')
+        SRC.zadd('zset1', 1, 'one')
+        SRC.zadd('zset1', 2, 'two')
+        SRC.zadd('zset1', 3.001, 'three')
+        SRC.hset('hash1', 'foo', '1')
+        SRC.hset('hash1', 'bar', '2')
+
+        SRC.save()
+        self.keys = set()
+        for key in redisimp.copy(SRC.dbfilename, DST):
+            self.keys.add(key)
+
+    def test(self):
+        self.assertEqual(DST.get('strfoo'), 'foo')
+        self.assertEqual(DST.get('strone'), '1')
+        self.assertEqual(
+            DST.zrange('zset1', 0, -1, withscores=True),
+            [('one', 1), ('two', 2), ('three', 3.001)])
+        self.assertEqual(DST.hgetall('hash1'), {'foo': '1', 'bar': '2'})
 
 
 if __name__ == '__main__':
