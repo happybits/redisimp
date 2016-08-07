@@ -230,7 +230,6 @@ class TestParseArgs(unittest.TestCase):
     def test_minimal(self):
         args = redisimp.cli.parse_args(['-s', '0:6379', '-d', '0:6380'])
         self.assertEqual(args.verbose, False)
-        self.assertEqual(args.workers, None)
         self.assertEqual(args.src, '0:6379')
         self.assertEqual(args.dst, '0:6380')
 
@@ -238,11 +237,6 @@ class TestParseArgs(unittest.TestCase):
         args = redisimp.cli.parse_args(
             ['--pattern', 'V{*}', '-s', '0:6379', '-d', '0:6380'])
         self.assertEqual(args.pattern, 'V{*}')
-
-    def test_workers(self):
-        args = redisimp.cli.parse_args(
-            ['--workers', '2', '-s', '0:6379', '-d', '0:6380'])
-        self.assertEqual(args.workers, 2)
 
     def test_verbose(self):
         args = redisimp.cli.parse_args(

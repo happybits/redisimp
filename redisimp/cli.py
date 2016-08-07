@@ -45,10 +45,6 @@ def parse_args(args=None):
         help='the destination in the form of hostname:port')
 
     parser.add_argument(
-        '-w', '--workers', type=int, default=None,
-        help='the number of workers to run in parallel.')
-
-    parser.add_argument(
         '-p', '--pattern', type=str, default=None,
         help='a glob-style pattern to select the keys to copy')
 
@@ -132,7 +128,7 @@ def sigterm_handler(signum, frame):
     raise SystemExit('--- Caught SIGTERM; Attempting to quit gracefully ---')
 
 
-def process(src, dst, verbose=False, worker_count=None, pattern=None,
+def process(src, dst, verbose=False, pattern=None,
             backfill=False, out=None):
     if out is None:
         out = sys.stdout
@@ -140,8 +136,7 @@ def process(src, dst, verbose=False, worker_count=None, pattern=None,
     processed = 0
     src_list = [s for s in resolve_sources(src)]
 
-    for key in multi_copy(src_list, dst, worker_count=worker_count,
-                          pattern=pattern, backfill=backfill):
+    for key in multi_copy(src_list, dst, pattern=pattern, backfill=backfill):
         processed += 1
         if verbose:
             print key
@@ -170,5 +165,5 @@ def main(args=None, out=None):
     args = parse_args(args=args)
 
     process(src=args.src, dst=args.dst,
-            verbose=args.verbose, worker_count=args.workers,
+            verbose=args.verbose,
             pattern=args.pattern, backfill=args.backfill, out=out)
