@@ -312,10 +312,13 @@ class TestRDBParser(unittest.TestCase):
 
         SRC.save()
         self.keys = set()
-        for key in redisimp.copy(SRC.dbfilename, DST):
+
+    def copy(self, pattern=None):
+        for key in redisimp.copy(SRC.dbfilename, DST, pattern=pattern):
             self.keys.add(key)
 
     def test(self):
+        self.copy()
         self.assertEqual(DST.get('strfoo'), 'foo')
         self.assertEqual(DST.get('strone'), '1')
         self.assertEqual(
@@ -323,6 +326,12 @@ class TestRDBParser(unittest.TestCase):
             [('one', 1), ('two', 2), ('three', 3.001)])
         self.assertEqual(DST.hgetall('hash1'), {'foo': '1', 'bar': '2'})
 
+    def test_with_pattern(self):
+        self.copy(pattern='/^str[A-Za-z0-9]+$/')
+        self.assertEqual(DST.get('strfoo'), 'foo')
+        self.assertEqual(DST.get('strone'), '1')
+        self.assertEqual(DST.zrange('zset1', 0, -1, withscores=True), [])
+        self.assertEqual(DST.hgetall('hash1'), {})
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

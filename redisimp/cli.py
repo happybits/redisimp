@@ -49,10 +49,6 @@ def parse_args(args=None):
         help='a glob-style pattern to select the keys to copy')
 
     parser.add_argument(
-        '-f', '--filter', type=str, dest='pattern',
-        help='a glob-style pattern to select the keys to copy')
-
-    parser.add_argument(
         '-v', '--verbose', action='store_true', default=False,
         help='turn on verbose output')
 
