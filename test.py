@@ -333,5 +333,31 @@ class TestRDBParser(unittest.TestCase):
         self.assertEqual(DST.zrange('zset1', 0, -1, withscores=True), [])
         self.assertEqual(DST.hgetall('hash1'), {})
 
+class TestRDBParserComplexKeys(unittest.TestCase):
+
+    def setUp(self):
+        clean()
+        self.populate()
+
+    def tearDown(self):
+        clean()
+
+    def populate(self):
+        self.key = "U{['v', 'g', 'r', None, None, '+1']}"
+        self.value = 'bar'
+        SRC.set(self.key, self.value)
+
+        SRC.save()
+        self.keys = set()
+
+    def copy(self, pattern=None):
+        for key in redisimp.copy(SRC.dbfilename, DST, pattern=pattern):
+            self.keys.add(key)
+
+    def test(self):
+        self.copy()
+        print self.keys
+        self.assertEqual(DST.get(self.key), self.value)
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

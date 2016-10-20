@@ -2,6 +2,10 @@
 
 import struct
 from .crc64 import crc64
+try:
+    import lzf
+except ImportError:
+    lzf = None
 
 __all__ = ['parse_rdb']
 
@@ -118,8 +122,8 @@ class RdbParser:
                 bytes_to_read = 4
             elif length == REDIS_RDB_ENC_LZF:
                 clen = self.read_length(f, out)
-                self.read_length(f, out)
-                bytes_to_read = clen
+                l = self.read_length(f, out)
+                return lzf_decompress(f.read(clen), l)
         else:
             bytes_to_read = length
 
@@ -204,3 +208,43 @@ def read_bytes(f, l, out=None):
 def parse_rdb(filename, key_filter=None):
     parser = RdbParser(key_filter=key_filter)
     return parser.parse(filename)
+
+
+def lzf_decompress(compressed, expected_length):
+    if lzf is not None:
+        return lzf.decompress(compressed, expected_length)
+
+    in_stream = bytearray(compressed)
+    in_len = len(in_stream)
+    in_index = 0
+    out_stream = bytearray()
+    out_index = 0
+
+    while in_index < in_len:
+        ctrl = in_stream[in_index]
+        if not isinstance(ctrl, int):
+            raise Exception('lzf_decompress',
+                            'ctrl should be a number %s' % str(ctrl))
+        in_index = in_index + 1
+        if ctrl < 32:
+            for x in xrange(0, ctrl + 1):
+                out_stream.append(in_stream[in_index])
+                in_index += 1
+                out_index += 1
+        else:
+            length = ctrl >> 5
+            if length == 7:
+                length += in_stream[in_index]
+                in_index += 1
+
+            ref = out_index - ((ctrl & 0x1f) << 8) - in_stream[in_index] - 1
+            in_index += 1
+            for x in xrange(0, length + 2):
+                out_stream.append(out_stream[ref])
+                ref += 1
+                out_index += 1
+    if len(out_stream) != expected_length:
+        raise Exception('lzf_decompress',
+                        'Expected lengths do not match %d != %d' % (
+                        len(out_stream), expected_length))
+    return str(out_stream)
