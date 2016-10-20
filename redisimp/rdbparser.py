@@ -105,10 +105,10 @@ class RdbParser:
         return self.read_length_with_encoding(f, out)[0]
 
     def read_key_and_object(self, f, data_type):
-        self._key = self.read_string(f)
+        self._key = self.read_string(f, decompress=True)
         self._value = self.read_object(f, data_type)
 
-    def read_string(self, f, out=None):
+    def read_string(self, f, out=None, decompress=False):
         tup = self.read_length_with_encoding(f, out)
         length = tup[0]
         is_encoded = tup[1]
@@ -123,7 +123,10 @@ class RdbParser:
             elif length == REDIS_RDB_ENC_LZF:
                 clen = self.read_length(f, out)
                 l = self.read_length(f, out)
-                return lzf_decompress(f.read(clen), l)
+                if decompress:
+                    return lzf_decompress(f.read(clen), l)
+                else:
+                    bytes_to_read = clen
         else:
             bytes_to_read = length
 
