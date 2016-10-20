@@ -2,10 +2,6 @@
 
 import struct
 from .crc64 import crc64
-try:
-    import lzf
-except ImportError:
-    lzf = None
 
 __all__ = ['parse_rdb']
 
@@ -214,9 +210,6 @@ def parse_rdb(filename, key_filter=None):
 
 
 def lzf_decompress(compressed, expected_length):
-    if lzf is not None:
-        return lzf.decompress(compressed, expected_length)
-
     in_stream = bytearray(compressed)
     in_len = len(in_stream)
     in_index = 0
@@ -247,7 +240,8 @@ def lzf_decompress(compressed, expected_length):
                 ref += 1
                 out_index += 1
     if len(out_stream) != expected_length:
-        raise Exception('lzf_decompress',
-                        'Expected lengths do not match %d != %d' % (
-                        len(out_stream), expected_length))
+        raise Exception(
+            'lzf_decompress',
+            'Expected lengths do not match %d != %d' % (
+                len(out_stream), expected_length))
     return str(out_stream)

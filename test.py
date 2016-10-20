@@ -333,7 +333,8 @@ class TestRDBParser(unittest.TestCase):
         self.assertEqual(DST.zrange('zset1', 0, -1, withscores=True), [])
         self.assertEqual(DST.hgetall('hash1'), {})
 
-class TestRDBParserComplexKeys(unittest.TestCase):
+
+class TestRDBParserLzfKeyAndValue(unittest.TestCase):
 
     def setUp(self):
         clean()
@@ -344,7 +345,7 @@ class TestRDBParserComplexKeys(unittest.TestCase):
 
     def populate(self):
         self.key = "U{['v', 'g', 'r', None, None, '+1']}"
-        self.value = 'bar'
+        self.value = "U{['v', 'g', 'r', None, None, '+1']}"
         SRC.set(self.key, self.value)
 
         SRC.save()
@@ -356,7 +357,7 @@ class TestRDBParserComplexKeys(unittest.TestCase):
 
     def test(self):
         self.copy()
-        print self.keys
+        self.assertEqual(self.keys, {self.key})
         self.assertEqual(DST.get(self.key), self.value)
 
 if __name__ == '__main__':
