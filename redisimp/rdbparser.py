@@ -1,5 +1,5 @@
 # Borrowed from rdb-tools
-
+import sys
 import struct
 from .crc64 import crc64
 
@@ -54,7 +54,7 @@ class RdbParser:
         """
         Parse a redis rdb dump file and yield key, serialized dump, ttl
         """
-        with open(filename, "rb") as f:
+        with sys.stdin if filename == '-' else open(filename, "rb") as f:
             self.verify_magic_string(f.read(5))
             self.verify_version(f.read(4))
             while True:
