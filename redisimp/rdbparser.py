@@ -11,21 +11,27 @@ REDIS_RDB_14BITLEN = 1
 REDIS_RDB_32BITLEN = 2
 REDIS_RDB_ENCVAL = 3
 
+REDIS_RDB_OPCODE_AUX = 250
+REDIS_RDB_OPCODE_RESIZEDB = 251
 REDIS_RDB_OPCODE_EXPIRETIME_MS = 252
 REDIS_RDB_OPCODE_EXPIRETIME = 253
 REDIS_RDB_OPCODE_SELECTDB = 254
 REDIS_RDB_OPCODE_EOF = 255
+
+
 
 REDIS_RDB_TYPE_STRING = 0
 REDIS_RDB_TYPE_LIST = 1
 REDIS_RDB_TYPE_SET = 2
 REDIS_RDB_TYPE_ZSET = 3
 REDIS_RDB_TYPE_HASH = 4
+REDIS_RDB_TYPE_ZSET_2 = 5  # ZSET version 2 with doubles stored in binary.
 REDIS_RDB_TYPE_HASH_ZIPMAP = 9
 REDIS_RDB_TYPE_LIST_ZIPLIST = 10
 REDIS_RDB_TYPE_SET_INTSET = 11
 REDIS_RDB_TYPE_ZSET_ZIPLIST = 12
 REDIS_RDB_TYPE_HASH_ZIPLIST = 13
+REDIS_RDB_TYPE_LIST_QUICKLIST = 14
 
 REDIS_RDB_ENC_INT8 = 0
 REDIS_RDB_ENC_INT16 = 1
@@ -69,6 +75,16 @@ class RdbParser:
                     data_type = read_unsigned_char(f)
 
                 if data_type == REDIS_RDB_OPCODE_SELECTDB:
+                    self.read_length(f)
+                    continue
+
+                if data_type == REDIS_RDB_OPCODE_AUX:
+                    self.read_string(f)
+                    self.read_string(f)
+                    continue
+
+                if data_type == REDIS_RDB_OPCODE_RESIZEDB:
+                    self.read_length(f)
                     self.read_length(f)
                     continue
 
@@ -137,7 +153,7 @@ class RdbParser:
             skip_strings = self.read_length(f, out)
         elif enc_type == REDIS_RDB_TYPE_SET:
             skip_strings = self.read_length(f, out)
-        elif enc_type == REDIS_RDB_TYPE_ZSET:
+        elif enc_type == REDIS_RDB_TYPE_ZSET or enc_type == REDIS_RDB_TYPE_ZSET_2:
             skip_strings = self.read_length(f, out) * 2
         elif enc_type == REDIS_RDB_TYPE_HASH:
             skip_strings = self.read_length(f, out) * 2
@@ -151,6 +167,8 @@ class RdbParser:
             skip_strings = 1
         elif enc_type == REDIS_RDB_TYPE_HASH_ZIPLIST:
             skip_strings = 1
+        elif enc_type == REDIS_RDB_TYPE_LIST_QUICKLIST:
+            skip_strings = self.read_length(f)
         else:
             raise Exception(
                 'read_object',
