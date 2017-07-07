@@ -168,7 +168,7 @@ class RdbParser:
         elif enc_type == REDIS_RDB_TYPE_HASH_ZIPLIST:
             skip_strings = 1
         elif enc_type == REDIS_RDB_TYPE_LIST_QUICKLIST:
-            skip_strings = self.read_length(f)
+            skip_strings = self.read_length(f, out)
         else:
             raise Exception(
                 'read_object',
