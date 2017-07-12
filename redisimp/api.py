@@ -94,6 +94,19 @@ def _get_restore_handler(conn):
         return _delete_restore
 
 
+def _dry_run_copy(src, pattern=None):
+    """
+    yields the keys it processes as it goes.
+    :param pattern:
+    :param src: redis.StrictRedis
+    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :return: None
+    """
+    for keys in _read_keys(src, pattern=pattern):
+        for key in keys:
+            yield key
+
+
 def _clobber_copy(src, dst, pattern=None):
     """
     yields the keys it processes as it goes.
@@ -183,6 +196,21 @@ def _rdb_clobber_copy(src, dst, pattern=None):
         pipe.execute()
 
 
+def _rdb_dryrun_copy(src, pattern=None):
+    """
+    yields the keys it processes as it goes.
+    WON'T OVERWRITE the key if it exists. It'll skip over it.
+    :param src: redis.StrictRedis
+    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param pattern: str
+    :return: None
+    """
+    matcher = rdb_regex_pattern(pattern)
+    for rows in _chunks(parse_rdb(src, matcher), 500):
+        for row in rows:
+            yield row[0]
+
+
 def _rdb_backfill_copy(src, dst, pattern=None):
     """
     yields the keys it processes as it goes.
@@ -231,15 +259,21 @@ def copy(src, dst, pattern=None, backfill=False):
     :param backfill: bool
     :return: generator
     """
+    if dst is None:
+        if isinstance(src, basestring):
+            return _rdb_dryrun_copy(src, pattern=pattern)
+        else:
+            return _dry_run_copy(src, pattern=pattern)
+
     if backfill:
         if isinstance(src, basestring):
-            copy = _rdb_backfill_copy
+            c = _rdb_backfill_copy
         else:
-            copy = _backfill_copy
+            c = _backfill_copy
     else:
         if isinstance(src, basestring):
-            copy = _rdb_clobber_copy
+            c = _rdb_clobber_copy
         else:
-            copy = _clobber_copy
+            c = _clobber_copy
 
-    return copy(src, dst, pattern)
+    return c(src, dst, pattern)

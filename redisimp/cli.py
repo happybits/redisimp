@@ -44,6 +44,9 @@ def parse_args(args=None):
         '-d', '--dst', type=str, required=True,
         help='the destination in the form of hostname:port')
 
+    parser.add_argument('--dry-run', action='store_true', default=False,
+                        help='iterate through all the keys to copy, dont do anything')
+
     parser.add_argument(
         '-p', '--pattern', type=str, default=None,
         help='a glob-style pattern to select the keys to copy')
@@ -125,10 +128,10 @@ def sigterm_handler(signum, frame):
 
 
 def process(src, dst, verbose=False, pattern=None,
-            backfill=False, out=None):
+            backfill=False, dryrun=False, out=None):
     if out is None:
         out = sys.stdout
-    dst = resolve_destination(dst)
+    dst = None if dryrun else resolve_destination(dst)
     processed = 0
     src_list = [s for s in resolve_sources(src)]
 
@@ -162,4 +165,7 @@ def main(args=None, out=None):
 
     process(src=args.src, dst=args.dst,
             verbose=args.verbose,
-            pattern=args.pattern, backfill=args.backfill, out=out)
+            pattern=args.pattern,
+            backfill=args.backfill,
+            dryrun=args.dry_run,
+            out=out)
