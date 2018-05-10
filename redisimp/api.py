@@ -1,5 +1,8 @@
 import re
-import rediscluster
+try:
+    import rediscluster
+except ImportError:
+    rediscluster = None
 from .rdbparser import parse_rdb
 from itertools import islice, chain
 import fnmatch
@@ -76,7 +79,7 @@ def _compare_version(version1, version2):
 
 
 def _supports_replace(conn):
-    if isinstance(conn, rediscluster.StrictRedisCluster):
+    if rediscluster and isinstance(conn, rediscluster.StrictRedisCluster):
         return True
     version = conn.info().get('redis_version')
     if not version:
