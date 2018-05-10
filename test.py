@@ -319,17 +319,17 @@ class TestRDBParser(unittest.TestCase):
 
     def test(self):
         self.copy()
-        self.assertEqual(DST.get('strfoo'), 'foo')
-        self.assertEqual(DST.get('strone'), '1')
+        self.assertEqual(DST.get('strfoo'), b'foo')
+        self.assertEqual(DST.get('strone'), b'1')
         self.assertEqual(
             DST.zrange('zset1', 0, -1, withscores=True),
-            [('one', 1), ('two', 2), ('three', 3.001)])
-        self.assertEqual(DST.hgetall('hash1'), {'foo': '1', 'bar': '2'})
+            [(b'one', 1), (b'two', 2), (b'three', 3.001)])
+        self.assertEqual(DST.hgetall('hash1'), {b'foo': b'1', b'bar': b'2'})
 
     def test_with_pattern(self):
         self.copy(pattern='/^str[A-Za-z0-9]+$/')
-        self.assertEqual(DST.get('strfoo'), 'foo')
-        self.assertEqual(DST.get('strone'), '1')
+        self.assertEqual(DST.get('strfoo'), b'foo')
+        self.assertEqual(DST.get('strone'), b'1')
         self.assertEqual(DST.zrange('zset1', 0, -1, withscores=True), [])
         self.assertEqual(DST.hgetall('hash1'), {})
 
@@ -344,8 +344,8 @@ class TestRDBParserLzfKeyAndValue(unittest.TestCase):
         clean()
 
     def populate(self):
-        self.key = "U{['v', 'g', 'r', None, None, '+1']}"
-        self.value = "U{['v', 'g', 'r', None, None, '+1']}"
+        self.key = """U{[1]}""".encode('utf-8')
+        self.value = """U{['v', 'g', 'r', None, None, '+1']}""".encode('utf-8')
         SRC.set(self.key, self.value)
 
         SRC.save()
@@ -372,10 +372,11 @@ class TestRDBParserBigSortedSet(unittest.TestCase):
         clean()
 
     def populate(self):
-        self.key = "U{1}"
+        self.key = b"U{1}"
         self.values = []
         for i in range(201):
-            t = (b"v%s" % i, float(i))
+            field = "v%s" % i
+            t = (field.encode('utf-8'), float(i))
             SRC.zadd(self.key, t[1], t[0])
             self.values.append(t)
 

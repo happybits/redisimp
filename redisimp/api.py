@@ -37,16 +37,26 @@ def _read_keys(src, batch_size=500, pattern=None):
     """
     if pattern is not None and pattern.startswith('/') and pattern.endswith('/'):
         regex_pattern = re.compile(pattern[1:-1])
+
+        def match(key):
+            try:
+                return regex_pattern.match(key.decode('utf-8'))
+            except UnicodeEncodeError:
+                pass
+
         pattern = None
     else:
         regex_pattern = None
+
+        def match(key):
+            return True
 
     cursor = 0
     while True:
         cursor, keys = src.scan(cursor=cursor, count=batch_size, match=pattern)
         if keys:
             if regex_pattern is not None:
-                keys = [key for key in keys if regex_pattern.match("%s" % key)]
+                keys = [key for key in keys if match(key)]
             yield keys
 
         if cursor == 0:
@@ -183,10 +193,20 @@ def rdb_regex_pattern(pattern):
         return matchall
 
     if pattern.startswith('/') and pattern.endswith('/'):
-        return re.compile(pattern[1:-1]).match
+        matcher = re.compile(pattern[1:-1]).match
+        def match(name):
+            try:
+                return matcher(name.decode('utf-8'))
+            except UnicodeError:
+                pass
+
+        return match
     else:
         def fnmatch_pattern(name):
-            return fnmatch.fnmatchcase("%s" % name, pattern)
+            try:
+                return fnmatch.fnmatchcase(name.decode('utf-8'), pattern)
+            except UnicodeError:
+                pass
 
         return fnmatch_pattern
 
