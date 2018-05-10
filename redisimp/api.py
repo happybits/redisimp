@@ -3,14 +3,24 @@ import rediscluster
 from .rdbparser import parse_rdb
 from itertools import islice, chain
 import fnmatch
+from six import string_types
+try:
+    from itertools import izip_longest as zip_longest  # noqa
+except ImportError:
+    from itertools import zip_longest  # noqa
+
+
 __all__ = ['copy']
 
 
-def _chunks(iterable, size):
-    sourceiter = iter(iterable)
-    while True:
-        batchiter = islice(sourceiter, size)
-        yield chain([batchiter.next()], batchiter)
+def _cmp(a, b):
+    return (a > b) - (a < b)
+
+def _chunks(iterable, size, fillvalue=None):
+    """
+    chunk(3, 'abcdefg', 'x') --> ('a','b','c'), ('d','e','f'), ('g','x','x')
+    """
+    return zip_longest(*[iter(iterable)] * size, fillvalue=fillvalue)
 
 
 def _read_keys(src, batch_size=500, pattern=None):
@@ -33,7 +43,7 @@ def _read_keys(src, batch_size=500, pattern=None):
         cursor, keys = src.scan(cursor=cursor, count=batch_size, match=pattern)
         if keys:
             if regex_pattern is not None:
-                keys = [key for key in keys if regex_pattern.match(key)]
+                keys = [key for key in keys if regex_pattern.match("%s" % key)]
             yield keys
 
         if cursor == 0:
@@ -62,7 +72,7 @@ def _compare_version(version1, version2):
     def normalize(v):
         return [int(x) for x in re.sub(r'(\.0+)*$', '', v).split(".")]
 
-    return cmp(normalize(version1), normalize(version2))
+    return _cmp(normalize(version1), normalize(version2))
 
 
 def _supports_replace(conn):
@@ -173,7 +183,7 @@ def rdb_regex_pattern(pattern):
         return re.compile(pattern[1:-1]).match
     else:
         def fnmatch_pattern(name):
-            return fnmatch.fnmatchcase(name, pattern)
+            return fnmatch.fnmatchcase("%s" % name, pattern)
 
         return fnmatch_pattern
 
@@ -190,7 +200,10 @@ def _rdb_clobber_copy(src, dst, pattern=None):
     matcher = rdb_regex_pattern(pattern)
     for rows in _chunks(parse_rdb(src, matcher), 500):
         pipe = dst.pipeline(transaction=False)
-        for key, data, pttl in rows:
+        for row in rows:
+            if row is None:
+                continue
+            key, data, pttl = row
             _restore(pipe, key, pttl, data)
             yield key
         pipe.execute()
@@ -208,6 +221,8 @@ def _rdb_dryrun_copy(src, pattern=None):
     matcher = rdb_regex_pattern(pattern)
     for rows in _chunks(parse_rdb(src, matcher), 500):
         for row in rows:
+            if row is None:
+                continue
             yield row[0]
 
 
@@ -223,9 +238,10 @@ def _rdb_backfill_copy(src, dst, pattern=None):
     matcher = rdb_regex_pattern(pattern)
     for rows in _chunks(parse_rdb(src, matcher), 500):
         # don't even bother reading the data if the key already exists in the src.
-        rows = [row for row in rows]
         pipe = dst.pipeline(transaction=False)
         for row in rows:
+            if row is None:
+                continue
             pipe.exists(row[0])
         rows = [rows[i] for i, result in enumerate(pipe.execute()) if
                 not result]
@@ -260,18 +276,18 @@ def copy(src, dst, pattern=None, backfill=False):
     :return: generator
     """
     if dst is None:
-        if isinstance(src, basestring):
+        if isinstance(src, string_types):
             return _rdb_dryrun_copy(src, pattern=pattern)
         else:
             return _dry_run_copy(src, pattern=pattern)
 
     if backfill:
-        if isinstance(src, basestring):
+        if isinstance(src, string_types):
             c = _rdb_backfill_copy
         else:
             c = _backfill_copy
     else:
-        if isinstance(src, basestring):
+        if isinstance(src, string_types):
             c = _rdb_clobber_copy
         else:
             c = _clobber_copy

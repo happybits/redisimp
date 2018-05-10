@@ -1,3 +1,4 @@
 redislite>=3.0.287
 redis>=2.10.5
 redis-py-cluster>=1.2.0
+six

@@ -3,7 +3,7 @@
 # std lib
 import os
 import unittest
-from StringIO import StringIO
+from six import StringIO
 
 # 3rd party
 import redis
@@ -80,15 +80,15 @@ class MultiCopyTestCase(unittest.TestCase):
 
 class CopyStrings(CopyTestCase):
     def populate(self):
-        SRC.set('foo', 'a')
-        SRC.set('bar', 'b')
-        SRC.set('bazz', 'c')
+        SRC.set('foo', b'a')
+        SRC.set('bar', b'b')
+        SRC.set('bazz', b'c')
 
     def test(self):
-        self.assertEqual(self.keys, {'foo', 'bar', 'bazz'})
-        self.assertEqual(DST.get('foo'), u'a')
-        self.assertEqual(DST.get('bar'), u'b')
-        self.assertEqual(DST.get('bazz'), u'c')
+        self.assertEqual(self.keys, {b'foo', b'bar', b'bazz'})
+        self.assertEqual(DST.get('foo'), b'a')
+        self.assertEqual(DST.get('bar'), b'b')
+        self.assertEqual(DST.get('bazz'), b'c')
 
 
 class CopyStringsBackfill(CopyTestCase):
@@ -101,13 +101,13 @@ class CopyStringsBackfill(CopyTestCase):
         SRC.set('bazz', 'c')
 
     def test(self):
-        self.assertEqual(self.keys, {'foo', 'bar', 'bazz'})
-        self.assertEqual(DST.get('foo'), u'a')
-        self.assertEqual(DST.get('bar'), u'b')
-        self.assertEqual(DST.get('bazz'), u'c')
+        self.assertEqual(self.keys, {b'foo', b'bar', b'bazz'})
+        self.assertEqual(DST.get('foo'), b'a')
+        self.assertEqual(DST.get('bar'), b'b')
+        self.assertEqual(DST.get('bazz'), b'c')
         SRC.set('quux', 'd')
         keys = set([key for key in self.copy()])
-        self.assertEqual(keys, {'quux'})
+        self.assertEqual(keys, {b'quux'})
 
 
 class CopySortedSets(CopyTestCase):
@@ -121,12 +121,12 @@ class CopySortedSets(CopyTestCase):
         SRC.zadd('bar', 3, 'three')
 
     def test(self):
-        self.assertEqual(self.keys, {'foo', 'bar'})
+        self.assertEqual(self.keys, {b'foo', b'bar'})
         self.assertEqual(DST.zrange('foo', 0, -1, withscores=True),
-                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+                         [(b'one', 1), (b'two', 2), (b'three', 3)])
 
         self.assertEqual(DST.zrange('bar', 0, -1, withscores=True),
-                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+                         [(b'one', 1), (b'two', 2), (b'three', 3)])
 
 
 class MultiCopySortedSets(MultiCopyTestCase):
@@ -140,12 +140,12 @@ class MultiCopySortedSets(MultiCopyTestCase):
         SRC_ALT.zadd('bar', 3, 'three')
 
     def test(self):
-        self.assertEqual(self.keys, {'foo', 'bar'})
+        self.assertEqual(self.keys, {b'foo', b'bar'})
         self.assertEqual(DST.zrange('foo', 0, -1, withscores=True),
-                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+                         [(b'one', 1), (b'two', 2), (b'three', 3)])
 
         self.assertEqual(DST.zrange('bar', 0, -1, withscores=True),
-                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+                         [(b'one', 1), (b'two', 2), (b'three', 3)])
 
 
 class CopyWithFilter(unittest.TestCase):
@@ -169,9 +169,9 @@ class CopyWithFilter(unittest.TestCase):
         SRC.zadd('bar', 3, 'three')
 
     def test(self):
-        self.assertEqual(self.keys, {'foo'})
+        self.assertEqual(self.keys, {b'foo'})
         self.assertEqual(DST.zrange('foo', 0, -1, withscores=True),
-                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+                         [(b'one', 1), (b'two', 2), (b'three', 3)])
 
         self.assertEqual(DST.zrange('bar', 0, -1), [])
 
@@ -195,7 +195,7 @@ class CopyWithRegexFilter(unittest.TestCase):
         SRC.set('bazz{a}', 1)
 
     def test(self):
-        self.assertEqual(self.keys, {'foo{a}', 'foo{b}', 'bar{a}'})
+        self.assertEqual(self.keys, {b'foo{a}', b'foo{b}', b'bar{a}'})
 
 
 class MultiCopyWithFilter(unittest.TestCase):
@@ -219,9 +219,9 @@ class MultiCopyWithFilter(unittest.TestCase):
         SRC.zadd('bar', 3, 'three')
 
     def test(self):
-        self.assertEqual(self.keys, {'foo'})
+        self.assertEqual(self.keys, {b'foo'})
         self.assertEqual(DST.zrange('foo', 0, -1, withscores=True),
-                         [(u'one', 1), (u'two', 2), (u'three', 3)])
+                         [(b'one', 1), (b'two', 2), (b'three', 3)])
 
         self.assertEqual(DST.zrange('bar', 0, -1), [])
 
@@ -274,9 +274,9 @@ class TestMain(unittest.TestCase):
         redisimp.main(['-s', SRC_RDB, '-d', DST_RDB, '--pattern', 'foo{*}'],
                       out=out)
         res = DST.zrange('foo{a}', 0, -1, withscores=True)
-        self.assertEqual(res, [('one', 1), ('two', 2), ('three', 3)])
+        self.assertEqual(res, [(b'one', 1), (b'two', 2), (b'three', 3)])
         res = DST.zrange('foo{b}', 0, -1, withscores=True)
-        self.assertEqual(res, [('one', 1), ('two', 2), ('three', 3)])
+        self.assertEqual(res, [(b'one', 1), (b'two', 2), (b'three', 3)])
         res = DST.zrange('bar', 0, -1, withscores=True)
         self.assertEqual(res, [])
 
@@ -286,7 +286,7 @@ class TestMain(unittest.TestCase):
         out = StringIO()
         redisimp.main(['-s', SRC_RDB, '-d', DST_RDB, '--backfill'], out=out)
         res = DST.zrange('bar', 0, -1, withscores=True)
-        self.assertEqual(res, [('one', 1), ('two', 2), ('three', 3)])
+        self.assertEqual(res, [(b'one', 1), (b'two', 2), (b'three', 3)])
 
         output = out.getvalue().strip()
         self.assertEqual(output, "processed 1 keys")
@@ -359,6 +359,38 @@ class TestRDBParserLzfKeyAndValue(unittest.TestCase):
         self.copy()
         self.assertEqual(self.keys, {self.key})
         self.assertEqual(DST.get(self.key), self.value)
+
+
+
+class TestRDBParserBigSortedSet(unittest.TestCase):
+
+    def setUp(self):
+        clean()
+        self.populate()
+
+    def tearDown(self):
+        clean()
+
+    def populate(self):
+        self.key = "U{1}"
+        self.values = []
+        for i in range(201):
+            t = (b"v%s" % i, float(i))
+            SRC.zadd(self.key, t[1], t[0])
+            self.values.append(t)
+
+        SRC.save()
+        self.keys = set()
+
+    def copy(self, pattern=None):
+        for key in redisimp.copy(SRC.dbfilename, DST, pattern=pattern):
+            self.keys.add(key)
+
+    def test(self):
+        self.copy()
+        self.assertEqual(self.keys, {self.key})
+        self.assertEqual(DST.zrange(self.key, 0, -1, withscores=True), self.values)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

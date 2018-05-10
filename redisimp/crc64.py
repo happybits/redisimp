@@ -1,6 +1,7 @@
 # Thanks to Matt Stancliff for porting the redis crc64 from c to python.
 # here is the C implementation:
 #     https://github.com/antirez/redis/blob/unstable/src/crc64.c
+from six import PY3
 
 _crc_table = [
     0x0000000000000000, 0x7ad870c830358979,
@@ -133,8 +134,13 @@ _crc_table = [
     0x536fa08fdfd90e51, 0x29b7d047efec8728,
 ]
 
+if PY3:
+    def _ord(i):
+        return i
+else:
+    _ord = ord
 
 def crc64(str_input, crc=0):
     for i in str_input:
-        crc = _crc_table[(crc ^ ord(i)) & 0xFF] ^ (crc >> 8)
+        crc = _crc_table[(crc ^ _ord(i)) & 0xFF] ^ (crc >> 8)
     return crc

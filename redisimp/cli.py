@@ -138,7 +138,7 @@ def process(src, dst, verbose=False, pattern=None,
     for key in multi_copy(src_list, dst, pattern=pattern, backfill=backfill):
         processed += 1
         if verbose:
-            print key
+            print(key)
 
         if not verbose and processed % 1000 == 0:
             out.write('\r%d' % processed)
