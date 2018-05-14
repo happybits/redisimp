@@ -1,0 +1,32 @@
+sudo: false
+language: python
+python:
+  - "2.7"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+  - "nightly"
+  - "pypy"
+  - "pypy3"
+install:
+  - pip install -r dev-requirements.txt
+  - "if [[ $HIREDIS == '1' ]]; then pip install hiredis; fi"
+env:
+  global:
+    - IS_TRAVIS=1
+  matrix:
+    - HIREDIS=0
+    - HIREDIS=1
+
+
+script:
+  - coverage erase
+  - coverage run --source redisimp -p test.py
+  - flake8 --exclude=./build,.venv*,.tox,dist
+
+after_success:
+  - coverage combine
+  - coveralls
+matrix:
+  allow_failures:
+    - python: "nightly"
