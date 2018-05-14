@@ -1,17 +1,17 @@
 import re
+
 try:
     import rediscluster
 except ImportError:
     rediscluster = None
 from .rdbparser import parse_rdb
-from itertools import islice, chain
 import fnmatch
 from six import string_types
+
 try:
     from itertools import izip_longest as zip_longest  # noqa
 except ImportError:
     from itertools import zip_longest  # noqa
-
 
 __all__ = ['copy']
 
@@ -19,11 +19,33 @@ __all__ = ['copy']
 def _cmp(a, b):
     return (a > b) - (a < b)
 
+
 def _chunks(iterable, size, fillvalue=None):
     """
     chunk(3, 'abcdefg', 'x') --> ('a','b','c'), ('d','e','f'), ('g','x','x')
     """
     return zip_longest(*[iter(iterable)] * size, fillvalue=fillvalue)
+
+
+def _compile_regex_pattern(pattern):
+    if pattern is None:
+        return None
+
+    if not pattern.startswith('/'):
+        return None
+
+    if not pattern.endswith('/'):
+        return None
+
+    regex_pattern = re.compile(pattern[1:-1])
+
+    def match(key):
+        try:
+            return regex_pattern.match(key.decode('utf-8'))
+        except UnicodeEncodeError:
+            pass
+
+    return match
 
 
 def _read_keys(src, batch_size=500, pattern=None):
@@ -35,28 +57,16 @@ def _read_keys(src, batch_size=500, pattern=None):
     :yeild: array of keys
     :return: generator
     """
-    if pattern is not None and pattern.startswith('/') and pattern.endswith('/'):
-        regex_pattern = re.compile(pattern[1:-1])
-
-        def match(key):
-            try:
-                return regex_pattern.match(key.decode('utf-8'))
-            except UnicodeEncodeError:
-                pass
-
+    matcher = _compile_regex_pattern(pattern)
+    if matcher:
         pattern = None
-    else:
-        regex_pattern = None
-
-        def match(key):
-            return True
 
     cursor = 0
     while True:
         cursor, keys = src.scan(cursor=cursor, count=batch_size, match=pattern)
         if keys:
-            if regex_pattern is not None:
-                keys = [key for key in keys if match(key)]
+            if matcher:
+                keys = [key for key in keys if matcher(key)]
             yield keys
 
         if cursor == 0:
@@ -160,7 +170,8 @@ def _backfill_copy(src, dst, pattern=None):
     """
     read = _read_data_and_pttl
     for keys in _read_keys(src, pattern=pattern):
-        # don't even bother reading the data if the key already exists in the src.
+        # don't even bother reading the data if the key already exists in the
+        #  src.
         pipe = dst.pipeline(transaction=False)
         for key in keys:
             pipe.exists(key)
@@ -194,6 +205,7 @@ def rdb_regex_pattern(pattern):
 
     if pattern.startswith('/') and pattern.endswith('/'):
         matcher = re.compile(pattern[1:-1]).match
+
         def match(name):
             try:
                 return matcher(name.decode('utf-8'))
@@ -260,7 +272,8 @@ def _rdb_backfill_copy(src, dst, pattern=None):
     """
     matcher = rdb_regex_pattern(pattern)
     for rows in _chunks(parse_rdb(src, matcher), 500):
-        # don't even bother reading the data if the key already exists in the src.
+        # don't even bother reading the data if the key already exists in the
+        #  src.
         pipe = dst.pipeline(transaction=False)
         for row in rows:
             if row is None:

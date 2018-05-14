@@ -48,7 +48,8 @@ def parse_args(args=None):
         help='the destination in the form of hostname:port')
 
     parser.add_argument('--dry-run', action='store_true', default=False,
-                        help='iterate through all the keys to copy, dont do anything')
+                        help='iterate through all the keys to copy, dont do '
+                             'anything')
 
     parser.add_argument(
         '-p', '--pattern', type=str, default=None,
@@ -82,7 +83,8 @@ def resolve_host(target):
         start = time.time()
         while True:
             try:
-                redislite.StrictRedis.start_timeout = REDISLITE_LOAD_WAIT_TIMEOUT
+                redislite.StrictRedis.start_timeout = \
+                    REDISLITE_LOAD_WAIT_TIMEOUT
                 conn = redislite.StrictRedis(target)
             except BusyLoadingError:
                 logging.info('%s loading', target)
@@ -121,7 +123,8 @@ def resolve_destination(dststring):
         return conn
 
     if not rediscluster:
-        raise RuntimeError('cluster destination specified and redis-py-cluster not installed')
+        raise RuntimeError(
+            'cluster destination specified and redis-py-cluster not installed')
 
     host, port = dststring.split(':')
     return rediscluster.StrictRedisCluster(

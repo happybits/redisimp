@@ -344,7 +344,7 @@ class TestRDBParserLzfKeyAndValue(unittest.TestCase):
         clean()
 
     def populate(self):
-        self.key = """U{[1]}""".encode('utf-8')
+        self.key = """U{['v', 'g', 'r', None, None, '+1']}""".encode('utf-8')
         self.value = """U{['v', 'g', 'r', None, None, '+1']}""".encode('utf-8')
         SRC.set(self.key, self.value)
 
@@ -359,7 +359,6 @@ class TestRDBParserLzfKeyAndValue(unittest.TestCase):
         self.copy()
         self.assertEqual(self.keys, {self.key})
         self.assertEqual(DST.get(self.key), self.value)
-
 
 
 class TestRDBParserBigSortedSet(unittest.TestCase):
@@ -390,7 +389,8 @@ class TestRDBParserBigSortedSet(unittest.TestCase):
     def test(self):
         self.copy()
         self.assertEqual(self.keys, {self.key})
-        self.assertEqual(DST.zrange(self.key, 0, -1, withscores=True), self.values)
+        self.assertEqual(DST.zrange(self.key, 0, -1, withscores=True),
+                         self.values)
 
 
 if __name__ == '__main__':

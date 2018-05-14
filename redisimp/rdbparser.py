@@ -3,8 +3,12 @@ import sys
 import struct
 from .crc64 import crc64
 
-__all__ = ['parse_rdb']
+try:
+    import lzf
+except ImportError:
+    lzf = None
 
+__all__ = ['parse_rdb']
 
 REDIS_RDB_6BITLEN = 0
 REDIS_RDB_14BITLEN = 1
@@ -18,8 +22,6 @@ REDIS_RDB_OPCODE_EXPIRETIME_MS = 252
 REDIS_RDB_OPCODE_EXPIRETIME = 253
 REDIS_RDB_OPCODE_SELECTDB = 254
 REDIS_RDB_OPCODE_EOF = 255
-
-
 
 REDIS_RDB_TYPE_STRING = 0
 REDIS_RDB_TYPE_LIST = 1
@@ -41,8 +43,7 @@ REDIS_RDB_ENC_INT16 = 1
 REDIS_RDB_ENC_INT32 = 2
 REDIS_RDB_ENC_LZF = 3
 
-
-REDIS_RDB_MODULE_OPCODE_EOF = 0   # End of module value.
+REDIS_RDB_MODULE_OPCODE_EOF = 0  # End of module value.
 REDIS_RDB_MODULE_OPCODE_SINT = 1
 REDIS_RDB_MODULE_OPCODE_UINT = 2
 REDIS_RDB_MODULE_OPCODE_FLOAT = 3
@@ -125,7 +126,10 @@ class RdbParser:
         elif enc_type == REDIS_RDB_64BITLEN:
             length = read_unsigned_long_be(f, out)
         else:
-            length = ntohl(f, out)
+            raise Exception(
+                'read_length_with_encoding',
+                "Invalid string encoding %s (encoding byte 0x%X)" % (
+                    enc_type, bytes[0]))
         return (length, is_encoded, bytes)
 
     def read_length(self, f, out=None):
@@ -157,11 +161,11 @@ class RdbParser:
                 bytes_to_read = 4
             elif length == REDIS_RDB_ENC_LZF:
                 clen = self.read_length(f, out)
-                l = self.read_length(f, out)
+                lzlen = self.read_length(f, out)
                 if decompress:
-                    return lzf_decompress(f.read(clen), l)
-                else:
-                    bytes_to_read = clen
+                    return lzf_decompress(f, read_bytes(f, clen), lzlen)
+
+                bytes_to_read = clen
         else:
             bytes_to_read = length
 
@@ -222,27 +226,21 @@ class RdbParser:
                             'Invalid RDB version number %d' % version)
 
 
-def ntohl(f, out=None):
-    val = read_unsigned_int(f, out)
-    new_val = 0
-    new_val = new_val | ((val & 0x000000ff) << 24)
-    new_val = new_val | ((val & 0xff000000) >> 24)
-    new_val = new_val | ((val & 0x0000ff00) << 8)
-    new_val = new_val | ((val & 0x00ff0000) >> 8)
-    return new_val
-
-
 def read_unsigned_char(f, out=None):
     return struct.unpack('B', read_bytes(f, 1, out))[0]
+
 
 def read_unsigned_int(f, out=None):
     return struct.unpack('I', read_bytes(f, 4, out))[0]
 
+
 def read_unsigned_int_be(f, out=None):
     return struct.unpack('>I', read_bytes(f, 4, out))[0]
 
+
 def read_unsigned_long_be(f, out=None):
     return struct.unpack('>Q', read_bytes(f, 8, out))[0]
+
 
 def read_unsigned_long(f, out=None):
     return struct.unpack('Q', read_bytes(f, 8, out))[0]
@@ -260,39 +258,45 @@ def parse_rdb(filename, key_filter=None):
     return parser.parse(filename)
 
 
-def lzf_decompress(compressed, expected_length):
-    in_stream = bytearray(compressed)
-    in_len = len(in_stream)
-    in_index = 0
-    out_stream = bytearray()
-    out_index = 0
+def lzf_decompress(self, compressed, expected_length):
+    if lzf:
+        return lzf.decompress(compressed, expected_length)
+    else:
+        in_stream = bytearray(compressed)
+        in_len = len(in_stream)
+        in_index = 0
+        out_stream = bytearray()
+        out_index = 0
 
-    while in_index < in_len:
-        ctrl = in_stream[in_index]
-        if not isinstance(ctrl, int):
+        while in_index < in_len:
+            ctrl = in_stream[in_index]
+            if not isinstance(ctrl, int):
+                raise Exception('lzf_decompress',
+                                'ctrl should be a number %s for key %s' % (
+                                    str(ctrl), self._key))
+            in_index = in_index + 1
+            if ctrl < 32:
+                for x in range(0, ctrl + 1):
+                    out_stream.append(in_stream[in_index])
+                    # sys.stdout.write(chr(in_stream[in_index]))
+                    in_index = in_index + 1
+                    out_index = out_index + 1
+            else:
+                length = ctrl >> 5
+                if length == 7:
+                    length = length + in_stream[in_index]
+                    in_index = in_index + 1
+
+                ref = out_index - ((ctrl & 0x1f) << 8) - in_stream[
+                    in_index] - 1
+                in_index = in_index + 1
+                for x in range(0, length + 2):
+                    out_stream.append(out_stream[ref])
+                    ref = ref + 1
+                    out_index = out_index + 1
+        if len(out_stream) != expected_length:
             raise Exception('lzf_decompress',
-                            'ctrl should be a number %s' % str(ctrl))
-        in_index = in_index + 1
-        if ctrl < 32:
-            for x in range(0, ctrl + 1):
-                out_stream.append(in_stream[in_index])
-                in_index += 1
-                out_index += 1
-        else:
-            length = ctrl >> 5
-            if length == 7:
-                length += in_stream[in_index]
-                in_index += 1
-
-            ref = out_index - ((ctrl & 0x1f) << 8) - in_stream[in_index] - 1
-            in_index += 1
-            for x in range(0, length + 2):
-                out_stream.append(out_stream[ref])
-                ref += 1
-                out_index += 1
-    if len(out_stream) != expected_length:
-        raise Exception(
-            'lzf_decompress',
-            'Expected lengths do not match %d != %d' % (
-                len(out_stream), expected_length))
-    return str(out_stream)
+                            'Expected lengths do not match %d != %d for key '
+                            '%s' % (
+                                len(out_stream), expected_length, self._key))
+        return bytes(out_stream)

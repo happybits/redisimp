@@ -140,6 +140,7 @@ if PY3:
 else:
     _ord = ord
 
+
 def crc64(str_input, crc=0):
     for i in str_input:
         crc = _crc_table[(crc ^ _ord(i)) & 0xFF] ^ (crc >> 8)
