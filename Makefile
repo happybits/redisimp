@@ -27,18 +27,12 @@ cleancov:
 	-coverage erase
 
 cleanmeta:
-	-rm -rf redis_py_cluster.egg-info/
+	-rm -rf *.egg-info/
 
-cleanall: clean cleancov cleanmeta
-	-find . -type f -name "*~" -exec rm -f "{}" \;
-	-find . -type f -name "*.orig" -exec rm -f "{}" \;
-	-find . -type f -name "*.rej" -exec rm -f "{}" \;
-	-find . -type f -name "*.pyc" -exec rm -f "{}" \;
-	-find . -type f -name "*.c" -exec rm -f "{}" \;
-	-find . -type f -name "*.so" -exec rm -f "{}" \;
-	-find . -type f -name "*.parse-index" -exec rm -f "{}" \;
-	-find . -type f -name ".redis*" -exec rm -f "{}" \;
+cleantox:
 	-rm -rf .tox/
+
+cleanall: clean cleancov cleanmeta cleantox
 
 sdist: cleanmeta
 	python setup.py sdist

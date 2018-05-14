@@ -44,7 +44,7 @@ setup(
                 ' into another or into a cluster.',
     author='John Loehrer',
     author_email='72squared@gmail.com',
-    url='https://github.com/72squared/%s' % NAME,
+    url='https://github.com/happybits/%s' % NAME,
     download_url='https://github.com/72squared/%s/archive/%s.tar.gz' %
                  (NAME, version),
     packages=[NAME],
