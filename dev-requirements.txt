@@ -6,6 +6,4 @@ pytest
 testfixtures
 tox
 flake8
-line_profiler
 python-coveralls
-
