@@ -1,7 +1,10 @@
 Redis Import Tool
 =================
 
-This project allows you to quickly and safely import data from other redis hosts
+|BuildStatus| |CoverageStatus| |Version| |Python|
+
+
+**RedisImp** allows you to quickly and safely import data from other redis hosts
  into a running redis instance or cluster.
 
 .. code-block::
@@ -36,6 +39,14 @@ Or a glob style pattern:
 
 
 
+.. |BuildStatus| image:: https://travis-ci.org/happybits/redisimp.svg?branch=master
+    :target: https://travis-ci.org/happybits/redisimp
 
+.. |CoverageStatus| image:: https://coveralls.io/repos/github/happybits/redisimp/badge.svg?branch=master
+    :target: https://coveralls.io/github/happybits/redisimp?branch=master
 
+.. |Version| image:: https://badge.fury.io/py/redisimp.svg
+    :target: https://badge.fury.io/py/redisimp
 
+.. |Python| image:: https://img.shields.io/badge/python-2.7,3.4,pypy-blue.svg
+    :target:  https://pypi.python.org/pypi/redisimp/
