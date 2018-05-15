@@ -126,10 +126,8 @@ class RdbParser:
         elif enc_type == REDIS_RDB_64BITLEN:
             length = read_unsigned_long_be(f, out)
         else:
-            raise Exception(
-                'read_length_with_encoding',
-                "Invalid string encoding %s (encoding byte 0x%X)" % (
-                    enc_type, bytes[0]))
+            length = ntohl(f, out)
+
         return (length, is_encoded, bytes)
 
     def read_length(self, f, out=None):
@@ -251,6 +249,22 @@ def read_bytes(f, l, out=None):
     if out is not None:
         out.append(_buf)
     return _buf
+
+
+def ntohl(f, out=None):
+    """
+    converts the unsigned integer netlong from network byte order to host byte order.
+    :param f:
+    :param out:
+    :return:
+    """
+    val = read_unsigned_int(f, out)
+    new_val = 0
+    new_val = new_val | ((val & 0x000000ff) << 24)
+    new_val = new_val | ((val & 0xff000000) >> 24)
+    new_val = new_val | ((val & 0x0000ff00) << 8)
+    new_val = new_val | ((val & 0x00ff0000) >> 8)
+    return new_val
 
 
 def parse_rdb(filename, key_filter=None):
