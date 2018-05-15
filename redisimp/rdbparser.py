@@ -163,9 +163,9 @@ class RdbParser:
                 clen = self.read_length(f, out)
                 lzlen = self.read_length(f, out)
                 if decompress:
-                    return lzf_decompress(f, read_bytes(f, clen), lzlen)
-
-                bytes_to_read = clen
+                    return lzf_decompress(f.read(clen), lzlen)
+                else:
+                    bytes_to_read = clen
         else:
             bytes_to_read = length
 
@@ -258,7 +258,7 @@ def parse_rdb(filename, key_filter=None):
     return parser.parse(filename)
 
 
-def lzf_decompress(self, compressed, expected_length):
+def lzf_decompress(compressed, expected_length):
     if lzf:
         return lzf.decompress(compressed, expected_length)
     else:
@@ -272,8 +272,7 @@ def lzf_decompress(self, compressed, expected_length):
             ctrl = in_stream[in_index]
             if not isinstance(ctrl, int):
                 raise Exception('lzf_decompress',
-                                'ctrl should be a number %s for key %s' % (
-                                    str(ctrl), self._key))
+                                'ctrl should be a number %s' % str(ctrl))
             in_index = in_index + 1
             if ctrl < 32:
                 for x in range(0, ctrl + 1):
@@ -296,7 +295,6 @@ def lzf_decompress(self, compressed, expected_length):
                     out_index = out_index + 1
         if len(out_stream) != expected_length:
             raise Exception('lzf_decompress',
-                            'Expected lengths do not match %d != %d for key '
-                            '%s' % (
-                                len(out_stream), expected_length, self._key))
+                            'Expected lengths do not match %d != %d' % (
+                                len(out_stream), expected_length))
         return bytes(out_stream)
