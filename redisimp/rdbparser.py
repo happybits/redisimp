@@ -253,7 +253,8 @@ def read_bytes(f, l, out=None):
 
 def ntohl(f, out=None):
     """
-    converts the unsigned integer netlong from network byte order to host byte order.
+    converts the unsigned integer netlong from
+    network byte order to host byte order.
     :param f:
     :param out:
     :return:

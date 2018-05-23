@@ -12,6 +12,7 @@ help:
 	@echo "  sdist           make a source distribution"
 	@echo "  bdist           make an egg distribution"
 	@echo "  install         install package"
+	@echo "  publish         publish package to pypi"
 	@echo " *** CI Commands ***"
 	@echo "  test            starts/activates the test cluster nodes and runs tox test"
 	@echo "  tox             run all tox environments and combine coverage report after"
@@ -42,6 +43,9 @@ bdist: cleanmeta
 
 install:
 	python setup.py install
+
+publish:
+	./publish.sh
 
 local:
 	python setup.py build_ext --inplace
