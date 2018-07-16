@@ -179,7 +179,10 @@ class RdbParser:
         elif enc_type == REDIS_RDB_TYPE_SET:
             skip_strings = self.read_length(f, out)
         elif enc_type == REDIS_RDB_TYPE_ZSET:
-            skip_strings = self.read_length(f, out) * 2
+            length = self.read_length(f, out)
+            for x in range(length):
+                self.read_string(f, out)
+                self.read_float(f, out)
         elif enc_type == REDIS_RDB_TYPE_ZSET_2:
             length = self.read_length(f, out)
             for x in range(length):
