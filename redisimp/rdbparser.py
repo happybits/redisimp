@@ -222,7 +222,7 @@ class RdbParser:
     def verify_version(self, version_str):
         version = int(version_str)
         self.version = version
-        if version < 1 or version > 8:
+        if version < 1 or version > 9:
             raise Exception('verify_version',
                             'Invalid RDB version number %d' % version)
 
@@ -247,8 +247,8 @@ def read_unsigned_long(f, out=None):
     return struct.unpack('Q', read_bytes(f, 8, out))[0]
 
 
-def read_bytes(f, l, out=None):
-    _buf = f.read(l)
+def read_bytes(f, flen, out=None):
+    _buf = f.read(flen)
     if out is not None:
         out.append(_buf)
     return _buf

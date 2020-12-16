@@ -99,7 +99,7 @@ def _compare_version(version1, version2):
 
 
 def _supports_replace(conn):
-    if rediscluster and isinstance(conn, rediscluster.StrictRedisCluster):
+    if rediscluster and isinstance(conn, rediscluster.RedisCluster):
         return True
     version = conn.info().get('redis_version')
     if not version:
@@ -132,7 +132,7 @@ def _dry_run_copy(src, pattern=None):
     yields the keys it processes as it goes.
     :param pattern:
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param dst: redis.StrictRedis or rediscluster.RedisCluster
     :return: None
     """
     for keys in _read_keys(src, pattern=pattern):
@@ -145,7 +145,7 @@ def _clobber_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     :param pattern:
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param dst: redis.StrictRedis or rediscluster.RedisCluster
     :return: None
     """
     read = _read_data_and_pttl
@@ -164,7 +164,7 @@ def _backfill_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param dst: redis.StrictRedis or rediscluster.RedisCluster
     :param pattern: str
     :return: None
     """
@@ -228,7 +228,7 @@ def _rdb_clobber_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     :param pattern:
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param dst: redis.StrictRedis or rediscluster.RedisCluster
     :return: None
     """
     _restore = _get_restore_handler(dst)
@@ -249,7 +249,7 @@ def _rdb_dryrun_copy(src, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param dst: redis.StrictRedis or rediscluster.RedisCluster
     :param pattern: str
     :return: None
     """
@@ -266,7 +266,7 @@ def _rdb_backfill_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.StrictRedisCluster
+    :param dst: redis.StrictRedis or rediscluster.RedisCluster
     :param pattern: str
     :return: None
     """

@@ -27,7 +27,7 @@ def flush_redis_data(conn):
     if conn is None:
         return
 
-    if rediscluster and isinstance(conn, rediscluster.StrictRedisCluster):
+    if rediscluster and isinstance(conn, rediscluster.RedisCluster):
         conns = [redis.StrictRedis(host=node['host'], port=node['port'])
                  for node in conn.connection_pool.nodes.nodes.values()
                  if node.get('server_type', None) == 'master']
@@ -112,13 +112,13 @@ class CopyStringsBackfill(CopyTestCase):
 
 class CopySortedSets(CopyTestCase):
     def populate(self):
-        SRC.zadd('foo', 1, 'one')
-        SRC.zadd('foo', 2, 'two')
-        SRC.zadd('foo', 3, 'three')
+        SRC.zadd('foo', dict(one=1))
+        SRC.zadd('foo', dict(two=2))
+        SRC.zadd('foo', dict(three=3))
 
-        SRC.zadd('bar', 1, 'one')
-        SRC.zadd('bar', 2, 'two')
-        SRC.zadd('bar', 3, 'three')
+        SRC.zadd('bar', dict(one=1))
+        SRC.zadd('bar', dict(two=2))
+        SRC.zadd('bar', dict(three=3))
 
     def test(self):
         self.assertEqual(self.keys, {b'foo', b'bar'})
@@ -131,13 +131,13 @@ class CopySortedSets(CopyTestCase):
 
 class MultiCopySortedSets(MultiCopyTestCase):
     def populate(self):
-        SRC.zadd('foo', 1, 'one')
-        SRC.zadd('foo', 2, 'two')
-        SRC.zadd('foo', 3, 'three')
+        SRC.zadd('foo', dict(one=1))
+        SRC.zadd('foo', dict(two=2))
+        SRC.zadd('foo', dict(three=3))
 
-        SRC_ALT.zadd('bar', 1, 'one')
-        SRC_ALT.zadd('bar', 2, 'two')
-        SRC_ALT.zadd('bar', 3, 'three')
+        SRC.zadd('bar', dict(one=1))
+        SRC.zadd('bar', dict(two=2))
+        SRC.zadd('bar', dict(three=3))
 
     def test(self):
         self.assertEqual(self.keys, {b'foo', b'bar'})
@@ -160,13 +160,13 @@ class CopyWithFilter(unittest.TestCase):
         clean()
 
     def populate(self):
-        SRC.zadd('foo', 1, 'one')
-        SRC.zadd('foo', 2, 'two')
-        SRC.zadd('foo', 3, 'three')
+        SRC.zadd('foo', dict(one=1))
+        SRC.zadd('foo', dict(two=2))
+        SRC.zadd('foo', dict(three=3))
 
-        SRC.zadd('bar', 1, 'one')
-        SRC.zadd('bar', 2, 'two')
-        SRC.zadd('bar', 3, 'three')
+        SRC.zadd('bar', dict(one=1))
+        SRC.zadd('bar', dict(two=2))
+        SRC.zadd('bar', dict(three=3))
 
     def test(self):
         self.assertEqual(self.keys, {b'foo'})
@@ -182,7 +182,7 @@ class CopyWithRegexFilter(unittest.TestCase):
         self.populate()
         self.keys = set()
         for key in redisimp.multi_copy([SRC], DST,
-                                       pattern='/^(foo|bar)\{[a-z]+\}$/'):
+                                       pattern='/^(foo|bar){[a-z]+}$/'):
             self.keys.add(key)
 
     def tearDown(self):
@@ -210,13 +210,13 @@ class MultiCopyWithFilter(unittest.TestCase):
         clean()
 
     def populate(self):
-        SRC.zadd('foo', 1, 'one')
-        SRC.zadd('foo', 2, 'two')
-        SRC.zadd('foo', 3, 'three')
+        SRC.zadd('foo', dict(one=1))
+        SRC.zadd('foo', dict(two=2))
+        SRC.zadd('foo', dict(three=3))
 
-        SRC.zadd('bar', 1, 'one')
-        SRC.zadd('bar', 2, 'two')
-        SRC.zadd('bar', 3, 'three')
+        SRC.zadd('bar', dict(one=1))
+        SRC.zadd('bar', dict(two=2))
+        SRC.zadd('bar', dict(three=3))
 
     def test(self):
         self.assertEqual(self.keys, {b'foo'})
@@ -253,17 +253,17 @@ class TestMain(unittest.TestCase):
         clean()
 
     def populate(self):
-        SRC.zadd('foo{a}', 1, 'one')
-        SRC.zadd('foo{a}', 2, 'two')
-        SRC.zadd('foo{a}', 3, 'three')
+        SRC.zadd('foo{a}', dict(one=1))
+        SRC.zadd('foo{a}', dict(two=2))
+        SRC.zadd('foo{a}', dict(three=3))
 
-        SRC.zadd('foo{b}', 1, 'one')
-        SRC.zadd('foo{b}', 2, 'two')
-        SRC.zadd('foo{b}', 3, 'three')
+        SRC.zadd('foo{b}', dict(one=1))
+        SRC.zadd('foo{b}', dict(two=2))
+        SRC.zadd('foo{b}', dict(three=3))
 
-        SRC.zadd('bar', 1, 'one')
-        SRC.zadd('bar', 2, 'two')
-        SRC.zadd('bar', 3, 'three')
+        SRC.zadd('bar', dict(one=1))
+        SRC.zadd('bar', dict(two=2))
+        SRC.zadd('bar', dict(three=3))
         SRC.save()
 
     def test(self):
@@ -304,9 +304,9 @@ class TestRDBParser(unittest.TestCase):
     def populate(self):
         SRC.set('strfoo', 'foo')
         SRC.set('strone', '1')
-        SRC.zadd('zset1', 1, 'one')
-        SRC.zadd('zset1', 2, 'two')
-        SRC.zadd('zset1', 3.001, 'three')
+        SRC.zadd('zset1', dict(one=1))
+        SRC.zadd('zset1', dict(two=2))
+        SRC.zadd('zset1', dict(three=3.001))
         SRC.hset('hash1', 'foo', '1')
         SRC.hset('hash1', 'bar', '2')
 
@@ -376,7 +376,7 @@ class TestRDBParserBigSortedSet(unittest.TestCase):
         for i in range(201):
             field = "v%s" % i
             t = (field.encode('utf-8'), float(i))
-            SRC.zadd(self.key, t[1], t[0])
+            SRC.zadd(self.key, {t[0]: t[1]})
             self.values.append(t)
 
         SRC.save()

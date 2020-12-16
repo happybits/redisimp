@@ -127,7 +127,7 @@ def resolve_destination(dststring):
             'cluster destination specified and redis-py-cluster not installed')
 
     host, port = dststring.split(':')
-    return rediscluster.StrictRedisCluster(
+    return rediscluster.RedisCluster(
         startup_nodes=[{'host': host, 'port': port}], max_connections=1000)
 
 

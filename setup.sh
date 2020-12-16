@@ -10,7 +10,7 @@ venv_dir="$root_dir/.venv"
 if [ ! -f "$venv_dir/bin/python" ]
 then
     echo "configuring virtualenv $venv_dir ..."
-    virtualenv -q -p "python2" "$venv_dir" || { echo >&2 "unable to configure the virtualenv for the project in $venv_dir"; exit 1; }
+    virtualenv -q -p "python3" "$venv_dir" || { echo >&2 "unable to configure the virtualenv for the project in $venv_dir"; exit 1; }
 fi
 
 "$venv_dir/bin/pip" install -q -r "$root_dir/dev-requirements.txt"
