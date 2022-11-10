@@ -1,9 +1,5 @@
 import re
-
-try:
-    import rediscluster
-except ImportError:
-    rediscluster = None
+import redis
 from .rdbparser import parse_rdb
 import fnmatch
 from six import string_types
@@ -99,7 +95,7 @@ def _compare_version(version1, version2):
 
 
 def _supports_replace(conn):
-    if rediscluster and isinstance(conn, rediscluster.RedisCluster):
+    if isinstance(conn, redis.RedisCluster):
         return True
     version = conn.info().get('redis_version')
     if not version:
@@ -145,7 +141,7 @@ def _clobber_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     :param pattern:
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.RedisCluster
+    :param dst: redis.StrictRedis or redis.RedisCluster
     :return: None
     """
     read = _read_data_and_pttl
@@ -164,7 +160,7 @@ def _backfill_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.RedisCluster
+    :param dst: redis.StrictRedis or redis.RedisCluster
     :param pattern: str
     :return: None
     """
@@ -228,7 +224,7 @@ def _rdb_clobber_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     :param pattern:
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.RedisCluster
+    :param dst: redis.StrictRedis or redis.RedisCluster
     :return: None
     """
     _restore = _get_restore_handler(dst)
@@ -249,7 +245,7 @@ def _rdb_dryrun_copy(src, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.RedisCluster
+    :param dst: redis.StrictRedis or redis.RedisCluster
     :param pattern: str
     :return: None
     """
@@ -266,7 +262,7 @@ def _rdb_backfill_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.RedisCluster
+    :param dst: redis.StrictRedis or redis.RedisCluster
     :param pattern: str
     :return: None
     """

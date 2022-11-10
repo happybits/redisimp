@@ -1,15 +1,11 @@
 # std lib
 import argparse
+import logging
 import sys
 import time
-import logging
 from signal import signal, SIGTERM
 
 # 3rd party
-try:
-    import rediscluster
-except ImportError:
-    rediscluster = None
 import redis
 import redislite
 from redis.exceptions import BusyLoadingError
@@ -122,13 +118,15 @@ def resolve_destination(dststring):
     if not conn.info('cluster').get('cluster_enabled', None):
         return conn
 
-    if not rediscluster:
-        raise RuntimeError(
-            'cluster destination specified and redis-py-cluster not installed')
-
-    host, port = dststring.split(':')
-    return rediscluster.RedisCluster(
-        startup_nodes=[{'host': host, 'port': port}], max_connections=1000)
+    if dststring.startswith("redis://") or \
+            dststring.startswith("rediss://") or \
+            dststring.startswith("unix://"):
+        return redis.RedisCluster.from_url(
+            dststring, max_connections=1000)
+    else:
+        return redis.RedisCluster.from_url(
+            "redis://{dststring}".format(dststring=dststring),
+            max_connections=1000)
 
 
 # pylint: disable=unused-argument
