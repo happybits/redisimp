@@ -7,8 +7,6 @@ from six import StringIO
 
 # 3rd party
 import redis
-import redislite
-import rediscluster
 import redislite.patch
 
 # our package
@@ -27,10 +25,10 @@ def flush_redis_data(conn):
     if conn is None:
         return
 
-    if rediscluster and isinstance(conn, rediscluster.RedisCluster):
+    if isinstance(conn, redis.RedisCluster):
         conns = [redis.StrictRedis(host=node['host'], port=node['port'])
-                 for node in conn.connection_pool.nodes.nodes.values()
-                 if node.get('server_type', None) == 'master']
+                 for node in conn.get_nodes()
+                 if node.server_type == 'master']
         for conn in conns:
             conn.flushall()
     else:

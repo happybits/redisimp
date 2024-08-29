@@ -1,9 +1,5 @@
 import re
-
-try:
-    import rediscluster
-except ImportError:
-    rediscluster = None
+from redis import RedisCluster
 from .rdbparser import parse_rdb
 import fnmatch
 from six import string_types
@@ -99,7 +95,7 @@ def _compare_version(version1, version2):
 
 
 def _supports_replace(conn):
-    if rediscluster and isinstance(conn, rediscluster.RedisCluster):
+    if isinstance(conn, RedisCluster):
         return True
     version = conn.info().get('redis_version')
     if not version:
@@ -164,7 +160,7 @@ def _backfill_copy(src, dst, pattern=None):
     yields the keys it processes as it goes.
     WON'T OVERWRITE the key if it exists. It'll skip over it.
     :param src: redis.StrictRedis
-    :param dst: redis.StrictRedis or rediscluster.RedisCluster
+    :param dst: redis.StrictRedis or redis.RedisCluster
     :param pattern: str
     :return: None
     """
